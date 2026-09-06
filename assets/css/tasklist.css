@@ -137,12 +137,14 @@
 
 .task-item {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 12px 14px;
+  touch-action: pan-y;
 }
 
 .task-item.is-done {
@@ -264,6 +266,7 @@
 .task-label {
   font-size: 15px;
   overflow-wrap: anywhere;
+  cursor: grab;
 }
 
 .task-date {
@@ -271,6 +274,7 @@
   font-size: 11px;
   letter-spacing: 0.04em;
   color: var(--text-dim);
+  cursor: grab;
 }
 
 .task-item.is-overdue .task-date {
@@ -305,6 +309,68 @@
 
 .task-edit:hover {
   color: var(--accent);
+}
+
+.task-notes-toggle {
+  flex-shrink: 0;
+  position: relative;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 6px;
+  opacity: 0.45;
+  filter: grayscale(1);
+  transition: opacity 0.15s ease, filter 0.15s ease, background 0.15s ease;
+}
+
+.task-notes-toggle:hover {
+  opacity: 0.8;
+}
+
+.task-notes-toggle.has-notes {
+  opacity: 1;
+  filter: none;
+  background: var(--accent-soft);
+}
+
+.task-notes-toggle.has-notes::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 1.5px var(--surface);
+}
+
+.task-notes-panel {
+  flex: 1 0 100%;
+  order: 10;
+  margin-top: 4px;
+}
+
+.task-notes-area {
+  width: 100%;
+  min-height: 110px;
+  resize: vertical;
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+}
+
+.task-notes-area:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .task-count {
