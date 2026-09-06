@@ -1,0 +1,4 @@
+.wrangler/
+.git/
+.env
+.env.*
