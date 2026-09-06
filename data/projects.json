@@ -1,0 +1,28 @@
+{
+  "projects": [
+    {
+      "title": "Custom MCP Server",
+      "summary": "Built a Model Context Protocol server to expose internal tooling and data sources directly to AI agents, giving them typed, permissioned access to real systems instead of relying on copy-pasted context.",
+      "tags": ["MCP", "AI Agents", "Integration"],
+      "published": true
+    },
+    {
+      "title": "Copilot Studio Skills Package",
+      "summary": "A curated library of production-grade agent skills covering document redlining, deck generation, and content commenting — each packaged with its own instructions, error handling, and anti-pattern guidance so behavior stays predictable.",
+      "tags": ["Copilot Studio", "SKILL.md", "Automation"],
+      "published": true
+    },
+    {
+      "title": "PowerPoint Agent Architecture",
+      "summary": "Designed an agent that produces genuinely on-brand decks from a corporate template, preserving master slides, theme colors, and layout integrity rather than generating slides from scratch.",
+      "tags": ["Copilot Studio", "OpenXML", "Document Generation"],
+      "published": true
+    },
+    {
+      "title": "Multi-Agent Orchestration Patterns",
+      "summary": "Designed orchestration across many child agents resolving into a single unified response, working through the routing, context handoff, and failure behavior that decide whether a multi-agent setup is usable or just impressive in a demo.",
+      "tags": ["Copilot Studio", "Orchestration", "Multi-Agent"],
+      "published": true
+    }
+  ]
+}
