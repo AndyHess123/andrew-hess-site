@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tasks — Andrew Hess</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap">
+<link rel="stylesheet" href="assets/css/styles.css?v=202608242310">
+<link rel="stylesheet" href="assets/css/tasklist.css?v=202608242310">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='25' x='3' font-size='24' font-family='monospace' fill='%23a78bfa'>A</text></svg>">
+<script src="assets/js/site.js?v=202608242310"></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html"><span class="brand-mark">&#9670;</span><span class="brand-full">Andrew Hess</span></a>
+    <nav class="nav" aria-label="Main">
+      <a href="index.html">Home</a>
+      <a href="videos.html">Videos</a>
+      <a href="work.html">Work</a>
+      <a href="contact.html">Contact</a>
+      <button class="theme-toggle" type="button" aria-label="Toggle theme">&#9728;</button>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="hero">
+    <div class="wrap">
+      <p class="eyebrow">Personal</p>
+      <h1>Tasks</h1>
+      <p class="lede">A small, private task list. Saved to this browser only.</p>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top: 12px;">
+    <div class="wrap wrap-narrow">
+
+      <form id="task-form" class="task-form">
+        <input
+          id="task-input"
+          type="text"
+          name="task"
+          placeholder="Add a task&hellip;"
+          autocomplete="off"
+          maxlength="200"
+          required
+        >
+        <input
+          id="task-date"
+          type="date"
+          name="date"
+          aria-label="Due date"
+        >
+        <button class="btn btn-primary" type="submit">Add</button>
+      </form>
+
+      <div class="task-toolbar">
+        <div class="task-filters" role="group" aria-label="Filter tasks">
+          <button class="filter-btn is-active" type="button" data-filter="all">All</button>
+          <button class="filter-btn" type="button" data-filter="active">Active</button>
+          <button class="filter-btn" type="button" data-filter="done">Done</button>
+        </div>
+        <button class="task-clear" id="clear-done" type="button">Clear completed</button>
+      </div>
+
+      <div class="view-toggle" role="group" aria-label="Switch view">
+        <button class="view-btn is-active" type="button" data-view="list">&#9776; List</button>
+        <button class="view-btn" type="button" data-view="calendar">&#128197; Calendar</button>
+      </div>
+
+      <div id="list-view" class="view-panel">
+        <ul id="task-list" class="task-list"></ul>
+        <p id="task-empty" class="state" hidden>No tasks yet &mdash; add one above.</p>
+        <p class="task-count"><span id="task-count-text">0 tasks</span></p>
+      </div>
+
+      <div id="calendar-view" class="view-panel" hidden>
+        <div class="cal-nav">
+          <button class="cal-nav-btn" id="cal-prev" type="button" aria-label="Previous month">&#8592;</button>
+          <h2 id="cal-title" class="cal-title">&nbsp;</h2>
+          <button class="cal-nav-btn" id="cal-next" type="button" aria-label="Next month">&#8594;</button>
+        </div>
+        <div class="cal-weekdays">
+          <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+        </div>
+        <div id="cal-grid" class="cal-grid"></div>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<div id="task-modal-backdrop" class="task-modal-backdrop" hidden>
+  <div class="task-modal" role="dialog" aria-modal="true" aria-labelledby="task-modal-text">
+    <p id="task-modal-text" class="task-modal-text"></p>
+    <p id="task-modal-date" class="task-modal-date"></p>
+    <button id="task-modal-close" class="task-modal-close" type="button">Close</button>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>&copy; <span id="year">2026</span> Andrew Hess</p>
+    <div class="footer-links">
+      <a href="https://www.linkedin.com/in/andrewhess123/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+      <a href="https://www.youtube.com/@andrewhess123" target="_blank" rel="noopener noreferrer">YouTube</a>
+      <a href="contact.html">Contact</a>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/js/tasklist.js?v=202608242310"></script>
+</body>
+</html>
