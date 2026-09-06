@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap">
 <link rel="stylesheet" href="assets/css/styles.css?v=202608242310">
-<link rel="stylesheet" href="assets/css/tasklist.css?v=202608242310">
+<link rel="stylesheet" href="assets/css/tasklist.css?v=202609061107">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='25' x='3' font-size='24' font-family='monospace' fill='%23a78bfa'>A</text></svg>">
 <script src="assets/js/site.js?v=202608242310"></script>
 </head>
@@ -58,17 +58,13 @@
           name="date"
           aria-label="Due date"
         >
+        <select id="task-priority" name="priority" aria-label="Priority">
+          <option value="low">Low</option>
+          <option value="medium" selected>Medium</option>
+          <option value="high">High</option>
+        </select>
         <button class="btn btn-primary" type="submit">Add</button>
       </form>
-
-      <div class="task-toolbar">
-        <div class="task-filters" role="group" aria-label="Filter tasks">
-          <button class="filter-btn is-active" type="button" data-filter="all">All</button>
-          <button class="filter-btn" type="button" data-filter="active">Active</button>
-          <button class="filter-btn" type="button" data-filter="done">Done</button>
-        </div>
-        <button class="task-clear" id="clear-done" type="button">Clear completed</button>
-      </div>
 
       <div class="view-toggle" role="group" aria-label="Switch view">
         <button class="view-btn is-active" type="button" data-view="list">&#9776; List</button>
@@ -78,6 +74,14 @@
       <div id="list-view" class="view-panel">
         <ul id="task-list" class="task-list"></ul>
         <p id="task-empty" class="state" hidden>No tasks yet &mdash; add one above.</p>
+        <div class="task-toolbar">
+          <div class="task-filters" role="group" aria-label="Filter tasks">
+            <button class="filter-btn is-active" type="button" data-filter="all">All</button>
+            <button class="filter-btn" type="button" data-filter="active">Active</button>
+            <button class="filter-btn" type="button" data-filter="done">Done</button>
+          </div>
+          <button class="task-clear" id="clear-done" type="button">Clear completed</button>
+        </div>
         <p class="task-count"><span id="task-count-text">0 tasks</span></p>
       </div>
 
@@ -106,6 +110,31 @@
   </div>
 </div>
 
+<div id="edit-modal-backdrop" class="task-modal-backdrop" hidden>
+  <div class="task-modal" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
+    <p id="edit-modal-title" class="task-modal-text">Edit task</p>
+    <form id="edit-modal-form" class="edit-modal-form">
+      <label class="edit-modal-label" for="edit-task-text">Task</label>
+      <input id="edit-task-text" type="text" maxlength="200" required>
+
+      <label class="edit-modal-label" for="edit-task-date">Due date</label>
+      <input id="edit-task-date" type="date">
+
+      <label class="edit-modal-label" for="edit-task-priority">Priority</label>
+      <select id="edit-task-priority">
+        <option value="low">Low</option>
+        <option value="medium">Medium</option>
+        <option value="high">High</option>
+      </select>
+
+      <div class="edit-modal-actions">
+        <button id="edit-modal-cancel" class="task-modal-close task-modal-close-secondary" type="button">Cancel</button>
+        <button class="task-modal-close" type="submit">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <footer class="site-footer">
   <div class="wrap">
     <p>&copy; <span id="year">2026</span> Andrew Hess</p>
@@ -117,6 +146,6 @@
   </div>
 </footer>
 
-<script src="assets/js/tasklist.js?v=202608242310"></script>
+<script src="assets/js/tasklist.js?v=202609061107"></script>
 </body>
 </html>

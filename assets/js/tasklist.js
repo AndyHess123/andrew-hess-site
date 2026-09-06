@@ -19,6 +19,7 @@
   var form = document.getElementById("task-form");
   var input = document.getElementById("task-input");
   var dateInput = document.getElementById("task-date");
+  var priorityInput = document.getElementById("task-priority");
   var list = document.getElementById("task-list");
   var empty = document.getElementById("task-empty");
   var countText = document.getElementById("task-count-text");
@@ -35,6 +36,13 @@
   var modalText = document.getElementById("task-modal-text");
   var modalDate = document.getElementById("task-modal-date");
   var modalClose = document.getElementById("task-modal-close");
+  var editModalBackdrop = document.getElementById("edit-modal-backdrop");
+  var editForm = document.getElementById("edit-modal-form");
+  var editTextInput = document.getElementById("edit-task-text");
+  var editDateInput = document.getElementById("edit-task-date");
+  var editPriorityInput = document.getElementById("edit-task-priority");
+  var editCancelBtn = document.getElementById("edit-modal-cancel");
+  var editingTaskId = null;
   var wrapNarrow = document.querySelector(".wrap-narrow");
   var taskToolbar = document.querySelector(".task-toolbar");
   var viewToggle = document.querySelector(".view-toggle");
@@ -137,23 +145,26 @@
     return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
   }
 
-  function mapRow(row) {
+  function mapRow(row, index) {
     return {
       id: String(row.id),
       text: row.title || "",
       done: Boolean(row.completed),
       date: row.due_date || "",
+      priority: row.priority || "medium",
+      sort_order: (row.sort_order === null || row.sort_order === undefined) ? index : Number(row.sort_order),
       created_at: row.created_at
     };
+  }
+
+  function capitalize(s) {
+    return s.charAt(0).toUpperCase() + s.slice(1);
   }
 
   function sortTasks(taskList) {
     taskList.sort(function (a, b) {
       if (a.done !== b.done) return a.done ? 1 : -1;
-      if (!a.date && !b.date) return 0;
-      if (!a.date) return 1;
-      if (!b.date) return -1;
-      if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+      if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
       return 0;
     });
   }
@@ -173,6 +184,13 @@
       var overdue = !task.done && task.date && task.date < todayISO();
       li.className = "task-item" + (task.done ? " is-done" : "") + (overdue ? " is-overdue" : "");
       li.dataset.id = task.id;
+      li.draggable = true;
+
+      var handle = document.createElement("button");
+      handle.type = "button";
+      handle.className = "drag-handle";
+      handle.setAttribute("aria-label", "Drag to reorder");
+      handle.textContent = "\u22EE\u22EE";
 
       var check = document.createElement("button");
       check.type = "button";
@@ -183,10 +201,23 @@
       var main = document.createElement("div");
       main.className = "task-main";
 
+      var topRow = document.createElement("div");
+      topRow.className = "task-top-row";
+
       var label = document.createElement("span");
       label.className = "task-label";
       label.textContent = task.text;
-      main.appendChild(label);
+      topRow.appendChild(label);
+
+      var badge = document.createElement("button");
+      badge.type = "button";
+      badge.className = "task-priority-badge priority-" + (task.priority || "medium");
+      badge.dataset.action = "cycle-priority";
+      badge.setAttribute("aria-label", "Cycle priority");
+      badge.textContent = capitalize(task.priority || "medium");
+      topRow.appendChild(badge);
+
+      main.appendChild(topRow);
 
       if (task.date) {
         var dateEl = document.createElement("span");
@@ -195,14 +226,22 @@
         main.appendChild(dateEl);
       }
 
+      var editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.className = "task-edit";
+      editBtn.setAttribute("aria-label", "Edit task");
+      editBtn.textContent = "\u270E";
+
       var del = document.createElement("button");
       del.type = "button";
       del.className = "task-delete";
       del.setAttribute("aria-label", "Delete task");
       del.textContent = "\u2715";
 
+      li.appendChild(handle);
       li.appendChild(check);
       li.appendChild(main);
+      li.appendChild(editBtn);
       li.appendChild(del);
       list.appendChild(li);
     });
@@ -346,6 +385,9 @@
     if (!text || !supabase) return;
 
     var dueDate = dateInput.value || tomorrowISO();
+    var priority = priorityInput ? priorityInput.value : "medium";
+    var activeOrders = tasks.filter(function (t) { return !t.done; }).map(function (t) { return t.sort_order; });
+    var nextOrder = activeOrders.length ? Math.max.apply(null, activeOrders) + 1 : 0;
     var submitBtn = form.querySelector('button[type="submit"]');
     if (submitBtn) submitBtn.disabled = true;
 
@@ -356,7 +398,9 @@
           {
             title: text,
             completed: false,
-            due_date: dueDate || null
+            due_date: dueDate || null,
+            priority: priority,
+            sort_order: nextOrder
           }
         ])
         .select();
@@ -366,11 +410,12 @@
       }
 
       if (res.data && res.data.length > 0) {
-        var newTask = mapRow(res.data[0]);
+        var newTask = mapRow(res.data[0], tasks.length);
         tasks.push(newTask);
         sortTasks(tasks);
         input.value = "";
         dateInput.value = "";
+        if (priorityInput) priorityInput.value = "medium";
         render();
       }
     } catch (err) {
@@ -409,6 +454,33 @@
         sortTasks(tasks);
         render();
       }
+    } else if (e.target.closest("[data-action='cycle-priority']")) {
+      var priorityTask = tasks.find(function (t) { return t.id === id; });
+      if (!priorityTask) return;
+
+      var order = ["low", "medium", "high"];
+      var prevPriority = priorityTask.priority || "medium";
+      var nextPriority = order[(order.indexOf(prevPriority) + 1) % order.length];
+      priorityTask.priority = nextPriority;
+      render();
+
+      try {
+        var res = await supabase
+          .from("family-tasks")
+          .update({ priority: nextPriority })
+          .eq("id", id);
+
+        if (res.error) {
+          throw res.error;
+        }
+      } catch (err) {
+        console.error("Failed to update priority:", err);
+        priorityTask.priority = prevPriority;
+        render();
+      }
+    } else if (e.target.closest(".task-edit")) {
+      var editTask = tasks.find(function (t) { return t.id === id; });
+      if (editTask) openEditModal(editTask);
     } else if (e.target.closest(".task-delete")) {
       var originalTasks = tasks.slice();
       tasks = tasks.filter(function (t) { return t.id !== id; });
@@ -428,6 +500,98 @@
         tasks = originalTasks;
         render();
       }
+    }
+  });
+
+  var dragSrcId = null;
+
+  list.addEventListener("dragstart", function (e) {
+    var handleEl = e.target.closest(".drag-handle");
+    var item = e.target.closest(".task-item");
+    if (!handleEl || !item) {
+      e.preventDefault();
+      return;
+    }
+    dragSrcId = item.dataset.id;
+    item.classList.add("is-dragging");
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", dragSrcId);
+  });
+
+  list.addEventListener("dragover", function (e) {
+    var item = e.target.closest(".task-item");
+    if (!item || !dragSrcId) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    list.querySelectorAll(".is-drag-over").forEach(function (el) {
+      el.classList.remove("is-drag-over");
+    });
+    if (item.dataset.id !== dragSrcId) item.classList.add("is-drag-over");
+  });
+
+  list.addEventListener("dragleave", function (e) {
+    var item = e.target.closest(".task-item");
+    if (item) item.classList.remove("is-drag-over");
+  });
+
+  list.addEventListener("dragend", function () {
+    list.querySelectorAll(".is-dragging, .is-drag-over").forEach(function (el) {
+      el.classList.remove("is-dragging", "is-drag-over");
+    });
+    dragSrcId = null;
+  });
+
+  list.addEventListener("drop", async function (e) {
+    var targetItem = e.target.closest(".task-item");
+    list.querySelectorAll(".is-drag-over").forEach(function (el) {
+      el.classList.remove("is-drag-over");
+    });
+    if (!targetItem || !dragSrcId || !supabase) return;
+    e.preventDefault();
+
+    var targetId = targetItem.dataset.id;
+    if (targetId === dragSrcId) return;
+
+    var srcTask = tasks.find(function (t) { return t.id === dragSrcId; });
+    if (!srcTask) return;
+
+    var visible = visibleTasks();
+    var reordered = visible.filter(function (t) { return t.id !== dragSrcId; });
+    var insertAt = reordered.findIndex(function (t) { return t.id === targetId; });
+    if (insertAt === -1) return;
+
+    var rect = targetItem.getBoundingClientRect();
+    var before = (e.clientY - rect.top) < rect.height / 2;
+    if (!before) insertAt += 1;
+    reordered.splice(insertAt, 0, srcTask);
+
+    var prevOrder = insertAt > 0 ? reordered[insertAt - 1].sort_order : null;
+    var nextOrder = insertAt < reordered.length - 1 ? reordered[insertAt + 1].sort_order : null;
+    var newOrder;
+    if (prevOrder === null && nextOrder === null) newOrder = 0;
+    else if (prevOrder === null) newOrder = nextOrder - 1;
+    else if (nextOrder === null) newOrder = prevOrder + 1;
+    else newOrder = (prevOrder + nextOrder) / 2;
+
+    var oldOrder = srcTask.sort_order;
+    srcTask.sort_order = newOrder;
+    sortTasks(tasks);
+    render();
+
+    try {
+      var res = await supabase
+        .from("family-tasks")
+        .update({ sort_order: newOrder })
+        .eq("id", dragSrcId);
+
+      if (res.error) {
+        throw res.error;
+      }
+    } catch (err) {
+      console.error("Failed to reorder task:", err);
+      srcTask.sort_order = oldOrder;
+      sortTasks(tasks);
+      render();
     }
   });
 
@@ -506,7 +670,68 @@
   modalBackdrop.addEventListener("click", function (e) {
     if (e.target === modalBackdrop) closeModal();
   });
+
+  function openEditModal(task) {
+    editingTaskId = task.id;
+    editTextInput.value = task.text;
+    editDateInput.value = task.date || "";
+    editPriorityInput.value = task.priority || "medium";
+    editModalBackdrop.hidden = false;
+    editTextInput.focus();
+  }
+
+  function closeEditModal() {
+    editModalBackdrop.hidden = true;
+    editingTaskId = null;
+  }
+
+  editForm.addEventListener("submit", async function (e) {
+    e.preventDefault();
+    if (!editingTaskId || !supabase) return;
+
+    var task = tasks.find(function (t) { return t.id === editingTaskId; });
+    if (!task) return;
+
+    var newText = editTextInput.value.trim();
+    if (!newText) return;
+    var newDate = editDateInput.value || null;
+    var newPriority = editPriorityInput.value;
+
+    var prev = { text: task.text, date: task.date, priority: task.priority };
+    task.text = newText;
+    task.date = newDate || "";
+    task.priority = newPriority;
+    sortTasks(tasks);
+    closeEditModal();
+    render();
+
+    try {
+      var res = await supabase
+        .from("family-tasks")
+        .update({ title: newText, due_date: newDate, priority: newPriority })
+        .eq("id", editingTaskId);
+
+      if (res.error) {
+        throw res.error;
+      }
+    } catch (err) {
+      console.error("Failed to update task:", err);
+      task.text = prev.text;
+      task.date = prev.date;
+      task.priority = prev.priority;
+      sortTasks(tasks);
+      render();
+    }
+  });
+
+  editCancelBtn.addEventListener("click", closeEditModal);
+  editModalBackdrop.addEventListener("click", function (e) {
+    if (e.target === editModalBackdrop) closeEditModal();
+  });
   document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") closeModal();
+    if (e.key === "Escape") {
+      closeModal();
+      closeEditModal();
+    }
   });
 })();
