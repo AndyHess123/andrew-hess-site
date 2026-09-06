@@ -184,11 +184,11 @@
       var overdue = !task.done && task.date && task.date < todayISO();
       li.className = "task-item" + (task.done ? " is-done" : "") + (overdue ? " is-overdue" : "");
       li.dataset.id = task.id;
-      li.draggable = true;
 
-      var handle = document.createElement("button");
-      handle.type = "button";
+      var handle = document.createElement("span");
       handle.className = "drag-handle";
+      handle.setAttribute("role", "button");
+      handle.setAttribute("tabindex", "0");
       handle.setAttribute("aria-label", "Drag to reorder");
       handle.textContent = "\u22EE\u22EE";
 
@@ -504,96 +504,119 @@
   });
 
   var dragSrcId = null;
+  var draggedEl = null;
+  var placeholderEl = null;
+  var dragOffsetX = 0;
+  var dragOffsetY = 0;
+  var dragItemWidth = 0;
 
-  list.addEventListener("dragstart", function (e) {
+  list.addEventListener("pointerdown", function (e) {
     var handleEl = e.target.closest(".drag-handle");
-    var item = e.target.closest(".task-item");
-    if (!handleEl || !item) {
-      e.preventDefault();
+    if (!handleEl) return;
+    var item = handleEl.closest(".task-item");
+    if (!item) return;
+
+    e.preventDefault();
+    draggedEl = item;
+    dragSrcId = item.dataset.id;
+
+    var rect = item.getBoundingClientRect();
+    dragOffsetX = e.clientX - rect.left;
+    dragOffsetY = e.clientY - rect.top;
+    dragItemWidth = rect.width;
+
+    placeholderEl = document.createElement("li");
+    placeholderEl.className = "task-item-placeholder";
+    placeholderEl.style.height = rect.height + "px";
+    item.parentNode.insertBefore(placeholderEl, item.nextSibling);
+
+    item.classList.add("is-dragging");
+    item.style.width = rect.width + "px";
+    item.style.left = rect.left + "px";
+    item.style.top = rect.top + "px";
+
+    document.addEventListener("pointermove", onPointerMove);
+    document.addEventListener("pointerup", onPointerUp, { once: true });
+    document.addEventListener("pointercancel", onPointerUp, { once: true });
+  });
+
+  function onPointerMove(e) {
+    if (!draggedEl) return;
+    e.preventDefault();
+
+    draggedEl.style.left = (e.clientX - dragOffsetX) + "px";
+    draggedEl.style.top = (e.clientY - dragOffsetY) + "px";
+
+    var prevPointerEvents = draggedEl.style.pointerEvents;
+    draggedEl.style.pointerEvents = "none";
+    var target = document.elementFromPoint(e.clientX, e.clientY);
+    draggedEl.style.pointerEvents = prevPointerEvents;
+
+    var overItem = target && target.closest(".task-item");
+    if (!overItem || overItem === draggedEl || !list.contains(overItem)) return;
+
+    var rect = overItem.getBoundingClientRect();
+    var before = (e.clientY - rect.top) < rect.height / 2;
+    if (before) {
+      list.insertBefore(placeholderEl, overItem);
+    } else {
+      list.insertBefore(placeholderEl, overItem.nextSibling);
+    }
+  }
+
+  async function onPointerUp() {
+    document.removeEventListener("pointermove", onPointerMove);
+    if (!draggedEl) return;
+
+    draggedEl.classList.remove("is-dragging");
+    draggedEl.style.width = "";
+    draggedEl.style.left = "";
+    draggedEl.style.top = "";
+
+    if (placeholderEl) {
+      placeholderEl.parentNode.insertBefore(draggedEl, placeholderEl);
+      placeholderEl.remove();
+      placeholderEl = null;
+    }
+
+    var orderedIds = Array.prototype.map.call(
+      list.querySelectorAll(".task-item"),
+      function (el) { return el.dataset.id; }
+    );
+    draggedEl = null;
+    dragSrcId = null;
+
+    if (!supabase) return;
+
+    var updates = [];
+    orderedIds.forEach(function (id, idx) {
+      var t = tasks.find(function (x) { return x.id === id; });
+      if (t && t.sort_order !== idx) {
+        updates.push({ id: id, sort_order: idx });
+        t.sort_order = idx;
+      }
+    });
+
+    if (!updates.length) {
+      sortTasks(tasks);
+      render();
       return;
     }
-    dragSrcId = item.dataset.id;
-    item.classList.add("is-dragging");
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", dragSrcId);
-  });
 
-  list.addEventListener("dragover", function (e) {
-    var item = e.target.closest(".task-item");
-    if (!item || !dragSrcId) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    list.querySelectorAll(".is-drag-over").forEach(function (el) {
-      el.classList.remove("is-drag-over");
-    });
-    if (item.dataset.id !== dragSrcId) item.classList.add("is-drag-over");
-  });
-
-  list.addEventListener("dragleave", function (e) {
-    var item = e.target.closest(".task-item");
-    if (item) item.classList.remove("is-drag-over");
-  });
-
-  list.addEventListener("dragend", function () {
-    list.querySelectorAll(".is-dragging, .is-drag-over").forEach(function (el) {
-      el.classList.remove("is-dragging", "is-drag-over");
-    });
-    dragSrcId = null;
-  });
-
-  list.addEventListener("drop", async function (e) {
-    var targetItem = e.target.closest(".task-item");
-    list.querySelectorAll(".is-drag-over").forEach(function (el) {
-      el.classList.remove("is-drag-over");
-    });
-    if (!targetItem || !dragSrcId || !supabase) return;
-    e.preventDefault();
-
-    var targetId = targetItem.dataset.id;
-    if (targetId === dragSrcId) return;
-
-    var srcTask = tasks.find(function (t) { return t.id === dragSrcId; });
-    if (!srcTask) return;
-
-    var visible = visibleTasks();
-    var reordered = visible.filter(function (t) { return t.id !== dragSrcId; });
-    var insertAt = reordered.findIndex(function (t) { return t.id === targetId; });
-    if (insertAt === -1) return;
-
-    var rect = targetItem.getBoundingClientRect();
-    var before = (e.clientY - rect.top) < rect.height / 2;
-    if (!before) insertAt += 1;
-    reordered.splice(insertAt, 0, srcTask);
-
-    var prevOrder = insertAt > 0 ? reordered[insertAt - 1].sort_order : null;
-    var nextOrder = insertAt < reordered.length - 1 ? reordered[insertAt + 1].sort_order : null;
-    var newOrder;
-    if (prevOrder === null && nextOrder === null) newOrder = 0;
-    else if (prevOrder === null) newOrder = nextOrder - 1;
-    else if (nextOrder === null) newOrder = prevOrder + 1;
-    else newOrder = (prevOrder + nextOrder) / 2;
-
-    var oldOrder = srcTask.sort_order;
-    srcTask.sort_order = newOrder;
     sortTasks(tasks);
     render();
 
     try {
-      var res = await supabase
-        .from("family-tasks")
-        .update({ sort_order: newOrder })
-        .eq("id", dragSrcId);
-
-      if (res.error) {
-        throw res.error;
-      }
+      var results = await Promise.all(updates.map(function (u) {
+        return supabase.from("family-tasks").update({ sort_order: u.sort_order }).eq("id", u.id);
+      }));
+      results.forEach(function (res) {
+        if (res.error) throw res.error;
+      });
     } catch (err) {
-      console.error("Failed to reorder task:", err);
-      srcTask.sort_order = oldOrder;
-      sortTasks(tasks);
-      render();
+      console.error("Failed to persist reorder:", err);
     }
-  });
+  }
 
   clearBtn.addEventListener("click", async function () {
     if (!supabase) return;
