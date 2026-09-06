@@ -49,6 +49,7 @@
 
   var filter = "all";
   var view = "list";
+  var expandedNotes = new Set();
   var calDate = new Date();
   calDate.setDate(1);
 
@@ -152,6 +153,7 @@
       done: Boolean(row.completed),
       date: row.due_date || "",
       priority: row.priority || "medium",
+      notes: row.notes || "",
       sort_order: (row.sort_order === null || row.sort_order === undefined) ? index : Number(row.sort_order),
       created_at: row.created_at
     };
@@ -232,6 +234,13 @@
       editBtn.setAttribute("aria-label", "Edit task");
       editBtn.textContent = "\u270E";
 
+      var notesBtn = document.createElement("button");
+      notesBtn.type = "button";
+      notesBtn.className = "task-notes-toggle" + (task.notes ? " has-notes" : "");
+      notesBtn.dataset.action = "toggle-notes";
+      notesBtn.setAttribute("aria-label", "Toggle notes");
+      notesBtn.textContent = "\uD83D\uDCDD";
+
       var del = document.createElement("button");
       del.type = "button";
       del.className = "task-delete";
@@ -241,8 +250,25 @@
       li.appendChild(handle);
       li.appendChild(check);
       li.appendChild(main);
+      li.appendChild(notesBtn);
       li.appendChild(editBtn);
       li.appendChild(del);
+
+      if (expandedNotes.has(task.id)) {
+        var notesPanel = document.createElement("div");
+        notesPanel.className = "task-notes-panel";
+
+        var notesArea = document.createElement("textarea");
+        notesArea.className = "task-notes-area";
+        notesArea.rows = 5;
+        notesArea.placeholder = "Add notes\u2026";
+        notesArea.value = task.notes || "";
+        notesArea.dataset.id = task.id;
+
+        notesPanel.appendChild(notesArea);
+        li.appendChild(notesPanel);
+      }
+
       list.appendChild(li);
     });
 
@@ -481,6 +507,15 @@
     } else if (e.target.closest(".task-edit")) {
       var editTask = tasks.find(function (t) { return t.id === id; });
       if (editTask) openEditModal(editTask);
+    } else if (e.target.closest("[data-action='toggle-notes']")) {
+      if (expandedNotes.has(id)) {
+        expandedNotes.delete(id);
+      } else {
+        expandedNotes.add(id);
+      }
+      render();
+      var textarea = list.querySelector('.task-notes-area[data-id="' + id + '"]');
+      if (textarea) textarea.focus();
     } else if (e.target.closest(".task-delete")) {
       var originalTasks = tasks.slice();
       tasks = tasks.filter(function (t) { return t.id !== id; });
@@ -503,6 +538,37 @@
     }
   });
 
+  list.addEventListener("focusout", async function (e) {
+    var textarea = e.target.closest(".task-notes-area");
+    if (!textarea || !supabase) return;
+
+    var id = textarea.dataset.id;
+    var task = tasks.find(function (t) { return t.id === id; });
+    if (!task) return;
+
+    var newNotes = textarea.value;
+    if (newNotes === task.notes) return;
+
+    var prevNotes = task.notes;
+    task.notes = newNotes;
+
+    try {
+      var res = await supabase
+        .from("family-tasks")
+        .update({ notes: newNotes })
+        .eq("id", id);
+
+      if (res.error) {
+        throw res.error;
+      }
+      render();
+    } catch (err) {
+      console.error("Failed to save notes:", err);
+      task.notes = prevNotes;
+      render();
+    }
+  });
+
   var dragSrcId = null;
   var draggedEl = null;
   var placeholderEl = null;
@@ -518,7 +584,13 @@
     var item = e.target.closest(".task-item");
     if (!item) return;
     // Buttons that have their own click action shouldn't arm a drag.
-    if (e.target.closest(".task-check") || e.target.closest(".task-edit") || e.target.closest(".task-delete")) {
+    if (
+      e.target.closest(".task-check") ||
+      e.target.closest(".task-edit") ||
+      e.target.closest(".task-delete") ||
+      e.target.closest(".task-notes-toggle") ||
+      e.target.closest(".task-notes-panel")
+    ) {
       return;
     }
 
