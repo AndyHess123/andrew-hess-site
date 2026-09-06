@@ -509,14 +509,51 @@
   var dragOffsetX = 0;
   var dragOffsetY = 0;
   var dragItemWidth = 0;
+  var pendingDragItem = null;
+  var pendingStartX = 0;
+  var pendingStartY = 0;
+  var DRAG_THRESHOLD = 6;
 
   list.addEventListener("pointerdown", function (e) {
-    var handleEl = e.target.closest(".drag-handle");
-    if (!handleEl) return;
-    var item = handleEl.closest(".task-item");
+    var item = e.target.closest(".task-item");
     if (!item) return;
+    // Buttons that have their own click action shouldn't arm a drag.
+    if (e.target.closest(".task-check") || e.target.closest(".task-edit") || e.target.closest(".task-delete")) {
+      return;
+    }
 
-    e.preventDefault();
+    pendingDragItem = item;
+    pendingStartX = e.clientX;
+    pendingStartY = e.clientY;
+
+    document.addEventListener("pointermove", onPendingPointerMove);
+    document.addEventListener("pointerup", onPendingPointerUp, { once: true });
+    document.addEventListener("pointercancel", onPendingPointerCancel, { once: true });
+  });
+
+  function onPendingPointerMove(e) {
+    if (!pendingDragItem) return;
+    var dx = e.clientX - pendingStartX;
+    var dy = e.clientY - pendingStartY;
+    if (Math.sqrt(dx * dx + dy * dy) < DRAG_THRESHOLD) return;
+
+    var item = pendingDragItem;
+    pendingDragItem = null;
+    document.removeEventListener("pointermove", onPendingPointerMove);
+    startDrag(item, e);
+  }
+
+  function onPendingPointerUp() {
+    pendingDragItem = null;
+    document.removeEventListener("pointermove", onPendingPointerMove);
+  }
+
+  function onPendingPointerCancel() {
+    pendingDragItem = null;
+    document.removeEventListener("pointermove", onPendingPointerMove);
+  }
+
+  function startDrag(item, e) {
     draggedEl = item;
     dragSrcId = item.dataset.id;
 
@@ -538,7 +575,7 @@
     document.addEventListener("pointermove", onPointerMove);
     document.addEventListener("pointerup", onPointerUp, { once: true });
     document.addEventListener("pointercancel", onPointerUp, { once: true });
-  });
+  }
 
   function onPointerMove(e) {
     if (!draggedEl) return;
@@ -712,7 +749,8 @@
     e.preventDefault();
     if (!editingTaskId || !supabase) return;
 
-    var task = tasks.find(function (t) { return t.id === editingTaskId; });
+    var taskId = editingTaskId;
+    var task = tasks.find(function (t) { return t.id === taskId; });
     if (!task) return;
 
     var newText = editTextInput.value.trim();
@@ -732,7 +770,7 @@
       var res = await supabase
         .from("family-tasks")
         .update({ title: newText, due_date: newDate, priority: newPriority })
-        .eq("id", editingTaskId);
+        .eq("id", taskId);
 
       if (res.error) {
         throw res.error;
