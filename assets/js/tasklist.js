@@ -1,9 +1,21 @@
-/* Simple task list — stored in localStorage, no backend.
+/* Task list synced with Supabase (with session passcode gate)
    Kept isolated from site.js since this page is intentionally unlinked. */
-(function () {
+(async function () {
   "use strict";
 
-  var STORAGE_KEY = "ah-tasklist";
+  var SUPABASE_URL = "https://eibkpyocpajjibsbzfes.supabase.co";
+  var SUPABASE_KEY = "sb_publishable_R4AhII2obt2PlCo27ReaVw_L5nD-lPt";
+  var PASSCODE_STORAGE_KEY = "family-passcode";
+
+  var createClient;
+  try {
+    var mod = await import("https://esm.sh/@supabase/supabase-js@2");
+    createClient = mod.createClient;
+  } catch (err) {
+    console.error("Failed to load Supabase client:", err);
+    return;
+  }
+
   var form = document.getElementById("task-form");
   var input = document.getElementById("task-input");
   var dateInput = document.getElementById("task-date");
@@ -19,31 +31,92 @@
   var calTitle = document.getElementById("cal-title");
   var calPrev = document.getElementById("cal-prev");
   var calNext = document.getElementById("cal-next");
+  var modalBackdrop = document.getElementById("task-modal-backdrop");
+  var modalText = document.getElementById("task-modal-text");
+  var modalDate = document.getElementById("task-modal-date");
+  var modalClose = document.getElementById("task-modal-close");
+  var wrapNarrow = document.querySelector(".wrap-narrow");
+  var taskToolbar = document.querySelector(".task-toolbar");
+  var viewToggle = document.querySelector(".view-toggle");
 
   var filter = "all";
   var view = "list";
   var calDate = new Date();
   calDate.setDate(1);
 
-  function load() {
+  var supabase = null;
+  var tasks = [];
+
+  // Hide the task interface until authenticated with passcode
+  form.hidden = true;
+  if (taskToolbar) taskToolbar.hidden = true;
+  if (viewToggle) viewToggle.hidden = true;
+  if (listView) listView.hidden = true;
+  if (calendarView) calendarView.hidden = true;
+
+  // Build Passcode Gate UI
+  var gate = document.createElement("div");
+  gate.id = "passcode-gate";
+  gate.style.marginBottom = "24px";
+
+  var gateForm = document.createElement("form");
+  gateForm.className = "task-form";
+
+  var passInput = document.createElement("input");
+  passInput.type = "password";
+  passInput.name = "passcode";
+  passInput.placeholder = "Enter passcode...";
+  passInput.autocomplete = "current-password";
+  passInput.required = true;
+
+  var passBtn = document.createElement("button");
+  passBtn.type = "submit";
+  passBtn.className = "btn btn-primary";
+  passBtn.textContent = "Unlock";
+
+  var gateMsg = document.createElement("p");
+  gateMsg.className = "state";
+  gateMsg.style.color = "var(--accent-2)";
+  gateMsg.style.marginTop = "8px";
+  gateMsg.style.padding = "0";
+  gateMsg.hidden = true;
+
+  gateForm.appendChild(passInput);
+  gateForm.appendChild(passBtn);
+  gate.appendChild(gateForm);
+  gate.appendChild(gateMsg);
+
+  function getSavedPasscode() {
     try {
-      var raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
+      return localStorage.getItem(PASSCODE_STORAGE_KEY) || "";
     } catch (e) {
-      return [];
+      return "";
     }
   }
 
-  function save(tasks) {
+  function savePasscode(code) {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      localStorage.setItem(PASSCODE_STORAGE_KEY, code);
     } catch (e) {
-      /* storage unavailable — task list won't persist this session */
+      /* ignore */
     }
   }
 
-  function uid() {
-    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  function clearSavedPasscode() {
+    try {
+      localStorage.removeItem(PASSCODE_STORAGE_KEY);
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  var savedPasscode = getSavedPasscode();
+  if (savedPasscode) {
+    gate.hidden = true;
+  }
+
+  if (wrapNarrow) {
+    wrapNarrow.prepend(gate);
   }
 
   function todayISO() {
@@ -64,14 +137,26 @@
     return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
   }
 
-  var tasks = load();
-  // Sort soonest due date first; tasks without a date go last.
-  tasks.sort(function (a, b) {
-    if (!a.date && !b.date) return 0;
-    if (!a.date) return 1;
-    if (!b.date) return -1;
-    return a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
-  });
+  function mapRow(row) {
+    return {
+      id: String(row.id),
+      text: row.title || "",
+      done: Boolean(row.completed),
+      date: row.due_date || "",
+      created_at: row.created_at
+    };
+  }
+
+  function sortTasks(taskList) {
+    taskList.sort(function (a, b) {
+      if (a.done !== b.done) return a.done ? 1 : -1;
+      if (!a.date && !b.date) return 0;
+      if (!a.date) return 1;
+      if (!b.date) return -1;
+      if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+      return 0;
+    });
+  }
 
   function visibleTasks() {
     if (filter === "active") return tasks.filter(function (t) { return !t.done; });
@@ -194,44 +279,178 @@
     }
   }
 
-  form.addEventListener("submit", function (e) {
+  async function tryConnect(entered) {
+    if (!entered) return false;
+
+    passBtn.disabled = true;
+    gateMsg.hidden = true;
+
+    try {
+      var client = createClient(SUPABASE_URL, SUPABASE_KEY, {
+        global: {
+          headers: {
+            "x-family-passcode": entered
+          }
+        }
+      });
+
+      var res = await client
+        .from("family-tasks")
+        .select("*")
+        .order("completed", { ascending: true })
+        .order("due_date", { ascending: true, nullsFirst: false })
+        .order("created_at", { ascending: false });
+
+      if (res.error) {
+        throw res.error;
+      }
+
+      savePasscode(entered);
+      supabase = client;
+      tasks = (res.data || []).map(mapRow);
+      sortTasks(tasks);
+
+      gate.remove();
+      form.hidden = false;
+      if (taskToolbar) taskToolbar.hidden = false;
+      if (viewToggle) viewToggle.hidden = false;
+      if (listView) listView.hidden = view !== "list";
+      if (calendarView) calendarView.hidden = view !== "calendar";
+
+      render();
+      return true;
+    } catch (err) {
+      clearSavedPasscode();
+      gate.hidden = false;
+      gateMsg.textContent = "Couldn't connect, check your passcode";
+      gateMsg.hidden = false;
+      passBtn.disabled = false;
+      return false;
+    }
+  }
+
+  gateForm.addEventListener("submit", async function (e) {
     e.preventDefault();
-    var text = input.value.trim();
-    if (!text) return;
-    tasks.push({ id: uid(), text: text, done: false, date: dateInput.value || tomorrowISO() });
-    tasks.sort(function (a, b) {
-      if (!a.date && !b.date) return 0;
-      if (!a.date) return 1;
-      if (!b.date) return -1;
-      return a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
-    });
-    save(tasks);
-    input.value = "";
-    dateInput.value = "";
-    render();
+    var entered = passInput.value.trim();
+    if (!entered) return;
+    await tryConnect(entered);
   });
 
-  list.addEventListener("click", function (e) {
+  if (savedPasscode) {
+    tryConnect(savedPasscode);
+  }
+
+  form.addEventListener("submit", async function (e) {
+    e.preventDefault();
+    var text = input.value.trim();
+    if (!text || !supabase) return;
+
+    var dueDate = dateInput.value || tomorrowISO();
+    var submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+
+    try {
+      var res = await supabase
+        .from("family-tasks")
+        .insert([
+          {
+            title: text,
+            completed: false,
+            due_date: dueDate || null
+          }
+        ])
+        .select();
+
+      if (res.error) {
+        throw res.error;
+      }
+
+      if (res.data && res.data.length > 0) {
+        var newTask = mapRow(res.data[0]);
+        tasks.push(newTask);
+        sortTasks(tasks);
+        input.value = "";
+        dateInput.value = "";
+        render();
+      }
+    } catch (err) {
+      console.error("Error adding task:", err);
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  });
+
+  list.addEventListener("click", async function (e) {
     var item = e.target.closest(".task-item");
-    if (!item) return;
+    if (!item || !supabase) return;
     var id = item.dataset.id;
 
     if (e.target.closest(".task-check")) {
       var task = tasks.find(function (t) { return t.id === id; });
-      if (task) task.done = !task.done;
-      save(tasks);
+      if (!task) return;
+
+      var prevDone = task.done;
+      task.done = !prevDone;
+      sortTasks(tasks);
       render();
+
+      try {
+        var res = await supabase
+          .from("family-tasks")
+          .update({ completed: task.done })
+          .eq("id", id);
+
+        if (res.error) {
+          throw res.error;
+        }
+      } catch (err) {
+        console.error("Failed to update task:", err);
+        task.done = prevDone;
+        sortTasks(tasks);
+        render();
+      }
     } else if (e.target.closest(".task-delete")) {
+      var originalTasks = tasks.slice();
       tasks = tasks.filter(function (t) { return t.id !== id; });
-      save(tasks);
       render();
+
+      try {
+        var res = await supabase
+          .from("family-tasks")
+          .delete()
+          .eq("id", id);
+
+        if (res.error) {
+          throw res.error;
+        }
+      } catch (err) {
+        console.error("Failed to delete task:", err);
+        tasks = originalTasks;
+        render();
+      }
     }
   });
 
-  clearBtn.addEventListener("click", function () {
+  clearBtn.addEventListener("click", async function () {
+    if (!supabase) return;
+    var originalTasks = tasks.slice();
     tasks = tasks.filter(function (t) { return !t.done; });
-    save(tasks);
     render();
+
+    try {
+      var res = await supabase
+        .from("family-tasks")
+        .delete()
+        .eq("completed", true);
+
+      if (res.error) {
+        throw res.error;
+      }
+    } catch (err) {
+      console.error("Failed to clear completed tasks:", err);
+      tasks = originalTasks;
+      render();
+    }
   });
 
   filterBtns.forEach(function (btn) {
@@ -264,13 +483,6 @@
     renderCalendar();
   });
 
-  // Tap/click a calendar task chip to open a modal with the full task text
-  // — works identically on touch devices, desktop, and across browsers.
-  var modalBackdrop = document.getElementById("task-modal-backdrop");
-  var modalText = document.getElementById("task-modal-text");
-  var modalDate = document.getElementById("task-modal-date");
-  var modalClose = document.getElementById("task-modal-close");
-
   function openModal(task) {
     modalText.textContent = task.text;
     modalDate.textContent = task.date
@@ -297,6 +509,4 @@
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape") closeModal();
   });
-
-  render();
 })();
