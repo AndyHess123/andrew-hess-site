@@ -155,7 +155,19 @@
 }
 
 .task-item.is-dragging {
-  opacity: 0.45;
+  position: fixed;
+  z-index: 200;
+  opacity: 0.95;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--accent);
+  transform: scale(1.03) rotate(-1deg);
+  cursor: grabbing;
+  pointer-events: none;
+}
+
+.task-item-placeholder {
+  border-radius: var(--radius);
+  border: 2px dashed var(--border-strong);
+  background: var(--accent-soft);
 }
 
 .task-item.is-drag-over {
@@ -164,14 +176,16 @@
 
 .drag-handle {
   flex-shrink: 0;
-  background: transparent;
-  border: none;
+  display: inline-block;
   color: var(--text-dim);
   font-size: 15px;
   line-height: 1;
   cursor: grab;
   padding: 4px 2px;
   touch-action: none;
+  -webkit-user-drag: element;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .drag-handle:active {
