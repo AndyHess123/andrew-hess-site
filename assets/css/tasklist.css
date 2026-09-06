@@ -3,6 +3,10 @@
    Not linked from nav; relies on tokens defined in styles.css.
    ========================================================================== */
 
+html[data-theme="dark"] {
+  --bg: #221d30;
+}
+
 .wrap-narrow {
   max-width: 640px;
 }
