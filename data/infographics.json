@@ -1,0 +1,14 @@
+{
+  "infographics": [
+    {
+      "id": "workflow-nodes",
+      "number": 1,
+      "title": "Workflow Nodes",
+      "image": "assets/img/%2334%20Workflow%20Nodes.png",
+      "downloadImage": "assets/img/%2334%20Workflow%20Nodes.png",
+      "summary": "A comprehensive visual reference guide detailing workflow nodes, triggers, flow controls, and action blocks in Copilot Studio.",
+      "tags": ["Copilot Studio", "Workflow Nodes", "Architecture", "Cheatsheet"],
+      "published": true
+    }
+  ]
+}

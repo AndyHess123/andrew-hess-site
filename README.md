@@ -9,6 +9,7 @@ Deploys as-is to Cloudflare Pages, Netlify, GitHub Pages, or any static host.
 _my-site/
 ├── index.html          Home — bio, focus areas, positioning, featured videos
 ├── videos.html         Curated, categorized video library
+├── infographics.html   Visual reference guides & infographics
 ├── work.html           Project highlights
 ├── contact.html        LinkedIn / YouTube / email
 ├── robots.txt
@@ -17,9 +18,11 @@ _my-site/
 │   └── js/
 │       ├── site.js     Theme toggle, active nav, footer year
 │       ├── videos.js   Renders the video library from data/videos.json
+│       ├── infographics.js Renders infographics from data/infographics.json + lightbox
 │       └── projects.js Renders project highlights from data/projects.json
 └── data/
     ├── videos.json     ← edit this to add/reorder/hide videos
+    ├── infographics.json ← edit this to add/reorder/hide infographics
     └── projects.json   ← edit this to add/reorder/hide projects
 ```
 
@@ -64,6 +67,23 @@ To add a new category, append to `categories`:
 
 ```json
 { "id": "security", "name": "Security & Governance", "blurb": "Optional one-liner." }
+```
+
+## Adding an infographic
+
+Edit `data/infographics.json` — no code changes needed. Place the image in `assets/img/`.
+
+```json
+{
+  "id": "workflow-nodes",
+  "number": 34,
+  "title": "Workflow Nodes",
+  "image": "assets/img/%2334%20Workflow%20Nodes.png",
+  "downloadImage": "assets/img/%2334%20Workflow%20Nodes.png",
+  "summary": "A comprehensive visual reference guide detailing workflow nodes, triggers, flow controls, and action blocks in Copilot Studio.",
+  "tags": ["Copilot Studio", "Workflow Nodes", "Architecture", "Cheatsheet"],
+  "published": true
+}
 ```
 
 ## Adding a project
