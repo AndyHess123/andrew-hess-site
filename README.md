@@ -57,7 +57,7 @@ Edit `data/videos.json` — no code changes needed.
 | `youtubeUrl` | Full YouTube URL. Supports `watch?v=`, `youtu.be/`, `/shorts/`, `/embed/`, `/live/`. Leave `""` to show a "Link coming soon" placeholder card. |
 | `category` | Must match a `categories[].id` |
 | `description` | One-line framing shown under the title |
-| `featured` | `true` pins it into the **Start Here** section (home shows 3, videos page shows 5) |
+| `featured` | `true` adds a **Start here** label in the categorized video library. The home page independently shows 5 random picks from the 12 most recent published videos. |
 | `published` | `false` hides it from the site without deleting the entry |
 
 **Ordering** is simply the order of entries in the array, within each category.

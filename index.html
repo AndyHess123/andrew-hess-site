@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap">
-<link rel="stylesheet" href="assets/css/styles.css?v=202608242310">
+<link rel="stylesheet" href="assets/css/styles.css?v=202610071351">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='25' x='3' font-size='24' font-family='monospace' fill='%23a78bfa'>A</text></svg>">
 <script src="assets/js/site.js?v=202608242310"></script>
 </head>
@@ -30,11 +30,14 @@
 
 <main id="main">
 
+  <div class="home-showcase">
   <section class="hero">
     <div class="wrap hero-grid">
       <div class="hero-portrait">
-        <img src="assets/img/andrew-hess.jpg" width="560" height="560"
+        <img class="hero-photo" src="assets/img/andrew-hess.jpg" width="560" height="560"
              alt="Portrait of Andrew Hess" decoding="async">
+        <img class="hero-mascot" src="assets/img/cat-cape.png" width="898" height="702"
+             alt="" decoding="async">
       </div>
       <div class="hero-copy">
         <h1>Andrew Hess</h1>
@@ -48,21 +51,19 @@
     </div>
   </section>
 
-  <section class="section">
-    <div class="wrap">
-      <div class="section-head">
+  <section class="section featured-section">
+    <div class="wrap featured-wrap">
+      <div class="section-head featured-head">
         <h2>Featured videos</h2>
-        <p>The full catalogue is organized by topic.</p>
+        <a class="btn btn-sm" href="videos.html">Browse all videos &#8594;</a>
       </div>
-      <div id="featured-videos" data-limit="3" data-pool="10">
+      <div id="featured-videos" data-limit="5" data-pool="12">
         <p class="state">Loading&hellip;</p>
-      </div>
-      <div class="actions">
-        <a class="btn" href="videos.html">Browse all videos &#8594;</a>
       </div>
     </div>
   </section>
 
+  </div>
   <section class="section">
     <div class="wrap">
       <div class="section-head">
@@ -147,6 +148,6 @@
   </div>
 </footer>
 
-<script src="assets/js/videos.js?v=202608242310"></script>
+<script src="assets/js/videos.js?v=202610071342"></script>
 </body>
 </html>

@@ -131,7 +131,7 @@
 
       if (featured.length) {
         featuredHost.innerHTML =
-          '<div class="video-grid">' +
+          '<div class="video-grid featured-grid">' +
           featured
             .map(function (v) {
               return cardHtml(v, nameById[v.category], false);

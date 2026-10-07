@@ -19,10 +19,47 @@
       "id": "extensibility",
       "name": "Developer Workflow & Extensibility",
       "blurb": "MCP servers, GitHub Copilot, and the tooling around building agents."
+    },
+    {
+      "id": "agent-platform",
+      "name": "Agent Platform & Governance",
+      "blurb": "Lifecycle tooling, diagnostics, governance, and operational practices for Copilot Studio agents."
     }
   ],
 
   "videos": [
+    {
+      "title": "Hooks in Copilot Studio | Introduction",
+      "youtubeUrl": "https://www.youtube.com/watch?v=pSOHi523znc",
+      "category": "extensibility",
+      "description": "An introduction to hooks as deterministic logic that runs on defined triggers, with examples including dynamic hooks and tool-failure logging.",
+      "featured": false,
+      "published": true
+    },
+    {
+      "title": "Simple Build | Adding A Skill to Battle Card Agent",
+      "youtubeUrl": "https://www.youtube.com/watch?v=n2OpHRsFJ0Y",
+      "category": "skills",
+      "description": "Build and refine a skill for a Battle Card agent to expand its capabilities and reduce consumption through an iterative create, test, observe, and update loop.",
+      "featured": false,
+      "published": true
+    },
+    {
+      "title": "Simple Build | Researching Battle Card Agent | Copilot Studio Ideas",
+      "youtubeUrl": "https://www.youtube.com/watch?v=njQOm3Uf-f0",
+      "category": "orchestration",
+      "description": "Use the Copilot node in workflows to research a Battle Card agent, then pass the results into the GitHub Copilot harness for skills, code, or custom logic.",
+      "featured": false,
+      "published": true
+    },
+    {
+      "title": "Why You Need The Copilot Agent Kit | Microsoft Copilot Studio",
+      "youtubeUrl": "https://www.youtube.com/watch?v=fHoEzBQtFSE",
+      "category": "agent-platform",
+      "description": "A tour of the Copilot Agent Kit across the agent lifecycle, including inventory, setup, diagnostics, testing, insights, governance, compliance, and maker-ready examples.",
+      "featured": false,
+      "published": true
+    },
     {
       "title": "Free Agent Skills for Copilot Studio | CAT Agent Skills Library",
       "youtubeUrl": "https://www.youtube.com/watch?v=7hbceiRubDY",

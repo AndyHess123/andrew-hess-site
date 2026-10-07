@@ -229,7 +229,37 @@ p {
 
 /* ---- Hero ---- */
 .hero {
+  position: relative;
   padding: 84px 0 20px;
+}
+
+.home-showcase {
+  position: relative;
+}
+
+.home-showcase::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      to bottom,
+      transparent 65%,
+      var(--bg) 100%
+    ),
+    linear-gradient(
+      90deg,
+      var(--bg) 0%,
+      color-mix(in srgb, var(--bg) 78%, transparent) 42%,
+      color-mix(in srgb, var(--bg) 38%, transparent) 100%
+    ),
+    url("../img/cat-hero-background.png") center center / cover no-repeat;
+  pointer-events: none;
+}
+
+.hero > .wrap,
+.featured-section {
+  position: relative;
 }
 
 /* The first section after the hero sits tight against it — no divider,
@@ -255,11 +285,26 @@ p {
   min-width: 0;
 }
 
+.hero-copy .actions {
+  align-items: center;
+}
+
+.hero-mascot {
+  position: absolute;
+  right: -20px;
+  bottom: -8px;
+  width: 112px;
+  height: auto;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.22));
+  pointer-events: none;
+}
+
 .hero-portrait {
+  position: relative;
   justify-self: start;
 }
 
-.hero-portrait img {
+.hero-photo {
   display: block;
   width: clamp(160px, 20vw, 232px);
   height: auto;
@@ -468,6 +513,45 @@ p {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
   gap: 22px;
+}
+
+.featured-head {
+  max-width: none;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.featured-head p {
+  text-align: right;
+}
+
+.featured-head .btn {
+  border: 1px solid var(--accent);
+}
+
+.featured-wrap {
+  max-width: 1680px;
+}
+
+.section.featured-section {
+  padding-bottom: 28px;
+}
+
+.home-showcase + .section {
+  padding-top: 28px;
+}
+
+.featured-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 18px;
+}
+
+@media (max-width: 1200px) {
+  .featured-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .video-card {
@@ -899,6 +983,22 @@ a.contact-card:hover {
 }
 
 @media (max-width: 760px) {
+  .hero-mascot {
+    width: 88px;
+    right: -16px;
+  }
+
+  .home-showcase::before {
+    background:
+      linear-gradient(
+        180deg,
+        var(--bg) 0%,
+        color-mix(in srgb, var(--bg) 76%, transparent) 48%,
+        var(--bg) 100%
+      ),
+      url("../img/cat-hero-background.png") center center / cover no-repeat;
+  }
+
   .hero-grid {
     grid-template-columns: 1fr;
     justify-items: center;
@@ -913,6 +1013,21 @@ a.contact-card:hover {
   .hero-copy .actions {
     justify-content: center;
   }
+
+  .featured-head {
+    align-items: start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .featured-head p {
+    text-align: left;
+  }
+
+  .featured-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
 }
 
 @media (max-width: 640px) {
@@ -935,5 +1050,12 @@ a.contact-card:hover {
 
   .brand span.brand-full {
     display: none;
+  }
+
+}
+
+@media (max-width: 460px) {
+  .featured-grid {
+    grid-template-columns: 1fr;
   }
 }
